@@ -1,0 +1,37 @@
+{
+  "name": "mail-mcp-server",
+  "version": "0.1.0",
+  "description": "Zero-dependency MCP server for Gmail: one OAuth token per mailbox, search, sender counts, unsubscribe, bulk label/archive/trash, filters. Every change is a dry-run plan first.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeff-fichtner/mail-mcp-server.git"
+  },
+  "type": "module",
+  "bin": {
+    "mail-mcp-server": "dist/src/bin.js"
+  },
+  "exports": {
+    "./config": "./dist/src/config.js",
+    "./gmail": "./dist/src/gmail.js",
+    "./stdio": "./dist/src/stdio.js",
+    "./testing": "./dist/test/fake.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "node --test 'test/*.test.ts'",
+    "check": "npm run typecheck && npm test",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run check && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
+  }
+}
