@@ -1,0 +1,12 @@
+{
+  "$comment": "Release channels for this library. Consumed by snackbyte-release-flow-action (jeff-fichtner/snackbyte-release-flow-action@v1) under version-strategy: package-json. The flow reads `branch` (is this a release channel? which one?) and `tagSuffix` (stamped on the derived tag). For a published library the version itself comes from package.json, not from a build counter. Adding a channel (e.g. a `next` pre-release lane) is a one-row edit here plus its branch.",
+  "environments": [
+    {
+      "name": "release",
+      "branch": "main",
+      "isPublicFace": true,
+      "noindex": false,
+      "tagSuffix": ""
+    }
+  ]
+}

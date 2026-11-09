@@ -46,7 +46,9 @@ export async function refreshAccessToken(
         `The refresh token for ${mailbox} has expired or been revoked (an app in Testing mode issues tokens that last 7 days). Run connect for ${mailbox} again.`,
       );
     }
-    throw new Error(`Token refresh for ${mailbox} failed: HTTP ${res.status} ${String(json['error'] ?? '')} ${String(json['error_description'] ?? '')}`.trim());
+    throw new Error(
+      `Token refresh for ${mailbox} failed: HTTP ${res.status} ${String(json['error'] ?? '')} ${String(json['error_description'] ?? '')}`.trim(),
+    );
   }
   const token = json['access_token'];
   const expiresIn = json['expires_in'];
@@ -97,11 +99,15 @@ export async function startConnect(options: ConnectOptions): Promise<PendingConn
     const error = url.searchParams.get('error');
     const code = url.searchParams.get('code');
     if (error || !code) {
-      res.writeHead(400, { 'Content-Type': 'text/plain' }).end(`Not connected: ${error ?? 'no code'}. You can close this tab.`);
+      res
+        .writeHead(400, { 'Content-Type': 'text/plain' })
+        .end(`Not connected: ${error ?? 'no code'}. You can close this tab.`);
       settle?.reject(new Error(`Consent was not given (${error ?? 'no code returned'}).`));
       return;
     }
-    res.writeHead(200, { 'Content-Type': 'text/plain', Connection: 'close' }).end('Connected. You can close this tab.');
+    res
+      .writeHead(200, { 'Content-Type': 'text/plain', Connection: 'close' })
+      .end('Connected. You can close this tab.');
     settle?.resolve(code);
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -123,7 +129,11 @@ export async function startConnect(options: ConnectOptions): Promise<PendingConn
   }
 
   const timer = setTimeout(() => {
-    settle?.reject(new Error(`No consent within ${Math.round(options.timeoutMs / 60000)} minutes; run connect again.`));
+    settle?.reject(
+      new Error(
+        `No consent within ${Math.round(options.timeoutMs / 60000)} minutes; run connect again.`,
+      ),
+    );
   }, options.timeoutMs);
 
   const done = (async () => {
@@ -147,7 +157,12 @@ export async function startConnect(options: ConnectOptions): Promise<PendingConn
   };
 }
 
-async function finishConnect(options: ConnectOptions, code: string, verifier: string, redirectUri: string): Promise<{ mailbox: string }> {
+async function finishConnect(
+  options: ConnectOptions,
+  code: string,
+  verifier: string,
+  redirectUri: string,
+): Promise<{ mailbox: string }> {
   const res = await options.fetch(TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -162,7 +177,9 @@ async function finishConnect(options: ConnectOptions, code: string, verifier: st
   });
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
-    throw new Error(`Exchanging the consent code failed: HTTP ${res.status} ${String(json['error'] ?? '')} ${String(json['error_description'] ?? '')}`.trim());
+    throw new Error(
+      `Exchanging the consent code failed: HTTP ${res.status} ${String(json['error'] ?? '')} ${String(json['error_description'] ?? '')}`.trim(),
+    );
   }
   const accessToken = json['access_token'];
   const refreshToken = json['refresh_token'];
@@ -173,10 +190,14 @@ async function finishConnect(options: ConnectOptions, code: string, verifier: st
   const granted = new Set(String(json['scope'] ?? '').split(' '));
   const missing = SCOPES.filter((s) => !granted.has(s));
   if (missing.length > 0) {
-    throw new Error(`Consent did not grant ${missing.join(', ')}. Run connect again and allow every permission.`);
+    throw new Error(
+      `Consent did not grant ${missing.join(', ')}. Run connect again and allow every permission.`,
+    );
   }
 
-  const profile = await options.fetch(PROFILE_URL, { headers: { Authorization: `Bearer ${accessToken}` } });
+  const profile = await options.fetch(PROFILE_URL, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
   const profileJson = (await profile.json().catch(() => ({}))) as Record<string, unknown>;
   const mailbox = profileJson['emailAddress'];
   if (!profile.ok || typeof mailbox !== 'string') {

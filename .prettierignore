@@ -1,0 +1,8 @@
+node_modules/
+coverage/
+dist/
+package-lock.json
+# Spec Kit scaffold, its specs and agent config are not ours to format
+.specify/
+.claude/
+specs/

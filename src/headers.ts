@@ -37,7 +37,10 @@ export function parseSender(from: string): Sender {
 // RFC 2369 List-Unsubscribe, with RFC 8058 one-click when List-Unsubscribe-Post says so.
 // Entries are <...> delimited; senders that omit the brackets are read as comma-separated.
 // Header folding can leave whitespace inside an entry, and URIs hold none, so it is removed.
-export function parseUnsubscribe(listUnsubscribe: string | undefined, listUnsubscribePost: string | undefined): Unsubscribe {
+export function parseUnsubscribe(
+  listUnsubscribe: string | undefined,
+  listUnsubscribePost: string | undefined,
+): Unsubscribe {
   if (!listUnsubscribe || !listUnsubscribe.trim()) {
     return { method: 'none' };
   }
@@ -48,9 +51,10 @@ export function parseUnsubscribe(listUnsubscribe: string | undefined, listUnsubs
 
   const link = entries.find((e) => /^https?:\/\//i.test(e));
   const mailto = entries.map(parseMailto).find((m) => m !== undefined);
-  const oneClick = link !== undefined
-    && /^https:\/\//i.test(link)
-    && /^\s*List-Unsubscribe=One-Click\s*$/i.test(listUnsubscribePost ?? '');
+  const oneClick =
+    link !== undefined &&
+    /^https:\/\//i.test(link) &&
+    /^\s*List-Unsubscribe=One-Click\s*$/i.test(listUnsubscribePost ?? '');
 
   if (oneClick) {
     return withOptional({ method: 'one-click', url: link }, mailto);

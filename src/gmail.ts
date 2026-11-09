@@ -146,17 +146,21 @@ export class Gmail {
   }
 
   // Newest first. `truncated` says more matched than `max`.
-  async listIds(q: string, max: number): Promise<{ ids: string[]; truncated: boolean; estimate: number }> {
+  async listIds(
+    q: string,
+    max: number,
+  ): Promise<{ ids: string[]; truncated: boolean; estimate: number }> {
     const ids: string[] = [];
     let pageToken: string | undefined;
     let estimate = 0;
     for (;;) {
-      const page = await this.request<{ messages?: Array<{ id: string }>; nextPageToken?: string; resultSizeEstimate?: number }>(
-        'GET',
-        '/messages',
-        COST.list,
-        { query: { q, maxResults: Math.min(500, max - ids.length), pageToken } },
-      );
+      const page = await this.request<{
+        messages?: Array<{ id: string }>;
+        nextPageToken?: string;
+        resultSizeEstimate?: number;
+      }>('GET', '/messages', COST.list, {
+        query: { q, maxResults: Math.min(500, max - ids.length), pageToken },
+      });
       estimate = Math.max(estimate, page.resultSizeEstimate ?? 0);
       for (const m of page.messages ?? []) {
         ids.push(m.id);
@@ -178,11 +182,15 @@ export class Gmail {
   }
 
   full(id: string): Promise<Message> {
-    return this.request('GET', `/messages/${encodeURIComponent(id)}`, COST.get, { query: { format: 'full' } });
+    return this.request('GET', `/messages/${encodeURIComponent(id)}`, COST.get, {
+      query: { format: 'full' },
+    });
   }
 
   async batchModify(ids: string[], addLabelIds: string[], removeLabelIds: string[]): Promise<void> {
-    await this.request('POST', '/messages/batchModify', COST.batchModify, { body: { ids, addLabelIds, removeLabelIds } });
+    await this.request('POST', '/messages/batchModify', COST.batchModify, {
+      body: { ids, addLabelIds, removeLabelIds },
+    });
   }
 
   async trash(id: string): Promise<void> {
@@ -194,31 +202,45 @@ export class Gmail {
   }
 
   send(raw: string, threadId?: string): Promise<{ id: string; threadId: string }> {
-    return this.request('POST', '/messages/send', COST.send, { body: threadId ? { raw, threadId } : { raw } });
+    return this.request('POST', '/messages/send', COST.send, {
+      body: threadId ? { raw, threadId } : { raw },
+    });
   }
 
   thread(id: string, full: boolean): Promise<{ id: string; messages?: Message[] }> {
-    const query: Query = full ? { format: 'full' } : { format: 'metadata', metadataHeaders: THREAD_HEADERS };
+    const query: Query = full
+      ? { format: 'full' }
+      : { format: 'metadata', metadataHeaders: THREAD_HEADERS };
     return this.request('GET', `/threads/${encodeURIComponent(id)}`, COST.threadGet, { query });
   }
 
   attachment(messageId: string, attachmentId: string): Promise<{ data: string; size: number }> {
-    return this.request('GET', `/messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachmentId)}`, COST.attachmentGet);
+    return this.request(
+      'GET',
+      `/messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachmentId)}`,
+      COST.attachmentGet,
+    );
   }
 
-  async drafts(max: number): Promise<Array<{ id: string; message: { id: string; threadId: string } }>> {
-    const r = await this.request<{ drafts?: Array<{ id: string; message: { id: string; threadId: string } }> } | undefined>(
-      'GET', '/drafts', COST.draftsList, { query: { maxResults: max } },
-    );
+  async drafts(
+    max: number,
+  ): Promise<Array<{ id: string; message: { id: string; threadId: string } }>> {
+    const r = await this.request<
+      { drafts?: Array<{ id: string; message: { id: string; threadId: string } }> } | undefined
+    >('GET', '/drafts', COST.draftsList, { query: { maxResults: max } });
     return r?.drafts ?? [];
   }
 
   draft(id: string): Promise<Draft> {
-    return this.request('GET', `/drafts/${encodeURIComponent(id)}`, COST.draftGet, { query: { format: 'full' } });
+    return this.request('GET', `/drafts/${encodeURIComponent(id)}`, COST.draftGet, {
+      query: { format: 'full' },
+    });
   }
 
   createDraft(raw: string, threadId?: string): Promise<Draft> {
-    return this.request('POST', '/drafts', COST.draftCreate, { body: { message: threadId ? { raw, threadId } : { raw } } });
+    return this.request('POST', '/drafts', COST.draftCreate, {
+      body: { message: threadId ? { raw, threadId } : { raw } },
+    });
   }
 
   updateDraft(id: string, raw: string, threadId?: string): Promise<Draft> {
@@ -236,7 +258,11 @@ export class Gmail {
   }
 
   async sendAs(): Promise<SendAs[]> {
-    const r = await this.request<{ sendAs?: SendAs[] } | undefined>('GET', '/settings/sendAs', COST.sendAsList);
+    const r = await this.request<{ sendAs?: SendAs[] } | undefined>(
+      'GET',
+      '/settings/sendAs',
+      COST.sendAsList,
+    );
     return r?.sendAs ?? [];
   }
 
@@ -257,7 +283,11 @@ export class Gmail {
 
   async filters(): Promise<Filter[]> {
     // A mailbox with no filters answers with an empty body.
-    const r = await this.request<{ filter?: Filter[] } | undefined>('GET', '/settings/filters', COST.filtersList);
+    const r = await this.request<{ filter?: Filter[] } | undefined>(
+      'GET',
+      '/settings/filters',
+      COST.filtersList,
+    );
     return r?.filter ?? [];
   }
 
@@ -269,7 +299,12 @@ export class Gmail {
     await this.request('DELETE', `/settings/filters/${encodeURIComponent(id)}`, COST.filtersDelete);
   }
 
-  async request<T>(method: string, path: string, cost: number, options: { query?: Query; body?: unknown } = {}): Promise<T> {
+  async request<T>(
+    method: string,
+    path: string,
+    cost: number,
+    options: { query?: Query; body?: unknown } = {},
+  ): Promise<T> {
     const url = new URL(BASE + path);
     for (const [key, value] of Object.entries(options.query ?? {})) {
       if (Array.isArray(value)) {
@@ -315,14 +350,22 @@ export class Gmail {
         continue;
       }
       // A mailbox connected before a scope was added holds a token without it; it needs one reconnect.
-      if (res.status === 403 && (reason === 'insufficientPermissions' || /insufficient authentication scopes/i.test(message))) {
+      if (
+        res.status === 403 &&
+        (reason === 'insufficientPermissions' ||
+          /insufficient authentication scopes/i.test(message))
+      ) {
         throw new GmailError(
           `${this.mailbox} has not granted the permission this needs (${method} ${path}). Run connect for ${this.mailbox} and allow every permission.`,
           res.status,
           reason,
         );
       }
-      throw new GmailError(`Gmail ${res.status}${reason ? ` ${reason}` : ''} on ${method} ${path}: ${message}`, res.status, reason);
+      throw new GmailError(
+        `Gmail ${res.status}${reason ? ` ${reason}` : ''} on ${method} ${path}: ${message}`,
+        res.status,
+        reason,
+      );
     }
   }
 
@@ -334,7 +377,13 @@ export class Gmail {
     if (!refreshToken) {
       throw new Error(`Mailbox ${this.mailbox} is not connected. Run connect.`);
     }
-    this.access = await refreshAccessToken(this.deps.fetch, this.deps.client, this.mailbox, refreshToken, this.deps.now);
+    this.access = await refreshAccessToken(
+      this.deps.fetch,
+      this.deps.client,
+      this.mailbox,
+      refreshToken,
+      this.deps.now,
+    );
     return this.access.token;
   }
 }
@@ -349,7 +398,9 @@ function backoffMs(attempt: number, retryAfter: string | null): number {
 
 function errorDetail(text: string): { reason: string | undefined; message: string } {
   try {
-    const json = JSON.parse(text) as { error?: { message?: string; errors?: Array<{ reason?: string }> } };
+    const json = JSON.parse(text) as {
+      error?: { message?: string; errors?: Array<{ reason?: string }> };
+    };
     return { reason: json.error?.errors?.[0]?.reason, message: json.error?.message ?? text };
   } catch {
     return { reason: undefined, message: text.slice(0, 200) };

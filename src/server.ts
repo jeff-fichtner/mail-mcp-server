@@ -1,13 +1,17 @@
 // MCP server for Gmail over stdio (Node built-ins only).
 // Configuration and registering with Claude Code are described in the README.
 
+import { readFileSync } from 'node:fs';
 import { openInBrowser } from './browser.ts';
 import { loadClient, loadOwner, loadTokenStore } from './config.ts';
 import { Mail } from './mail.ts';
 import { serveStdio } from './stdio.ts';
 import { TOOLS, callTool } from './tools.ts';
 
-const VERSION = '0.1.1';
+// package.json sits one level above both src/ and dist/.
+const VERSION: string = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+).version;
 
 // A missing owner id, or a missing or malformed OAuth client, is reported at startup on stderr and on every call, rather
 // than letting calls go out without one.

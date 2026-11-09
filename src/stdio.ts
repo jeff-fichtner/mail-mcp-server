@@ -15,12 +15,23 @@ export function serveStdio(info: ServerInfo, tools: unknown[], callTool: CallToo
     process.stdout.write(`${JSON.stringify(message)}\n`);
   };
 
-  const handleCall = async (id: unknown, params: { name?: string; arguments?: Record<string, unknown> } | undefined) => {
+  const handleCall = async (
+    id: unknown,
+    params: { name?: string; arguments?: Record<string, unknown> } | undefined,
+  ) => {
     try {
       const result = await callTool(params?.name ?? '', params?.arguments ?? {});
-      send({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify(result) }] } });
+      send({
+        jsonrpc: '2.0',
+        id,
+        result: { content: [{ type: 'text', text: JSON.stringify(result) }] },
+      });
     } catch (e) {
-      send({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: (e as Error).message }], isError: true } });
+      send({
+        jsonrpc: '2.0',
+        id,
+        result: { content: [{ type: 'text', text: (e as Error).message }], isError: true },
+      });
     }
   };
 

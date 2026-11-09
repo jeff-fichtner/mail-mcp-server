@@ -1,11 +1,11 @@
 {
+  // The build: src → dist with declarations. Everything else inherits from tsconfig.json.
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
-    "rootDir": ".",
-    "outDir": "dist",
     "declaration": true,
-    "rewriteRelativeImportExtensions": true
+    "outDir": "dist",
+    "rootDir": "src"
   },
-  "include": ["src", "test/fake.ts"]
+  "include": ["src/**/*.ts"]
 }

@@ -4,7 +4,14 @@
 import type { OAuthClient, TokenStore } from './config.ts';
 import { Gmail, header, type Filter, type GmailDeps, type Label, type Message } from './gmail.ts';
 import { parseSender, parseUnsubscribe, type Mailto, type UnsubscribeMethod } from './headers.ts';
-import { compose, draftSummary, getThread, listDrafts, saveAttachments, type ComposeSpec } from './messages.ts';
+import {
+  compose,
+  draftSummary,
+  getThread,
+  listDrafts,
+  saveAttachments,
+  type ComposeSpec,
+} from './messages.ts';
 import * as settings from './settings.ts';
 import { buildRawMessage, extractText } from './mime.ts';
 import { startConnect, type Fetch, type PendingConnect } from './oauth.ts';
@@ -30,8 +37,19 @@ export const LIMITS = {
 } as const;
 
 export const MODIFY_ACTIONS = [
-  'archive', 'trash', 'untrash', 'mark_read', 'mark_unread', 'star', 'unstar',
-  'mark_important', 'mark_unimportant', 'spam', 'not_spam', 'add_label', 'remove_label',
+  'archive',
+  'trash',
+  'untrash',
+  'mark_read',
+  'mark_unread',
+  'star',
+  'unstar',
+  'mark_important',
+  'mark_unimportant',
+  'spam',
+  'not_spam',
+  'add_label',
+  'remove_label',
 ] as const;
 export type ModifyAction = (typeof MODIFY_ACTIONS)[number];
 
@@ -48,8 +66,17 @@ const LABEL_CHANGES: Partial<Record<ModifyAction, { add: string[]; remove: strin
   not_spam: { add: ['INBOX'], remove: ['SPAM'] },
 };
 export const FILTER_ACTIONS = [
-  'archive', 'trash', 'label', 'label_and_archive', 'never_spam', 'mark_read', 'star',
-  'important', 'never_important', 'categorize', 'forward',
+  'archive',
+  'trash',
+  'label',
+  'label_and_archive',
+  'never_spam',
+  'mark_read',
+  'star',
+  'important',
+  'never_important',
+  'categorize',
+  'forward',
 ] as const;
 export type FilterAction = (typeof FILTER_ACTIONS)[number];
 
@@ -127,7 +154,9 @@ export class Mail {
   }
 
   listMailboxes(): { mailboxes: string[]; last_connect?: ConnectStatus } {
-    const out: { mailboxes: string[]; last_connect?: ConnectStatus } = { mailboxes: this.deps.store.mailboxes() };
+    const out: { mailboxes: string[]; last_connect?: ConnectStatus } = {
+      mailboxes: this.deps.store.mailboxes(),
+    };
     if (this.connectStatus) {
       out.last_connect = this.connectStatus;
     }
@@ -138,7 +167,12 @@ export class Mail {
   // consents, and list_mailboxes reports how it ended. A newer connect replaces a pending one.
   async connect(loginHint?: string): Promise<PendingConnect> {
     this.pending?.cancel();
-    const options = { client: this.deps.client, store: this.deps.store, fetch: this.deps.fetch, timeoutMs: CONNECT_TIMEOUT_MS };
+    const options = {
+      client: this.deps.client,
+      store: this.deps.store,
+      fetch: this.deps.fetch,
+      timeoutMs: CONNECT_TIMEOUT_MS,
+    };
     const pending = await startConnect(loginHint ? { ...options, loginHint } : options);
     this.pending = pending;
     this.connectStatus = { state: 'pending', started: this.iso() };
@@ -179,11 +213,29 @@ export class Mail {
 
   async getMessage(mailbox: string, id: string, full: boolean) {
     const gmail = this.gmail(mailbox);
-    const message = full ? await gmail.full(id) : await gmail.metadata(id, [
-      'From', 'To', 'Cc', 'Date', 'Subject', 'Message-ID', 'List-Unsubscribe', 'List-Unsubscribe-Post',
-    ]);
+    const message = full
+      ? await gmail.full(id)
+      : await gmail.metadata(id, [
+          'From',
+          'To',
+          'Cc',
+          'Date',
+          'Subject',
+          'Message-ID',
+          'List-Unsubscribe',
+          'List-Unsubscribe-Post',
+        ]);
     const headers: Record<string, string> = {};
-    for (const name of ['From', 'To', 'Cc', 'Date', 'Subject', 'Message-ID', 'List-Unsubscribe', 'List-Unsubscribe-Post']) {
+    for (const name of [
+      'From',
+      'To',
+      'Cc',
+      'Date',
+      'Subject',
+      'Message-ID',
+      'List-Unsubscribe',
+      'List-Unsubscribe-Post',
+    ]) {
       const value = header(message, name);
       if (value !== undefined) {
         headers[name] = value;
@@ -195,7 +247,8 @@ export class Mail {
       labels: message.labelIds ?? [],
       date: this.date(message),
       headers,
-      unsubscribe: parseUnsubscribe(headers['List-Unsubscribe'], headers['List-Unsubscribe-Post']).method,
+      unsubscribe: parseUnsubscribe(headers['List-Unsubscribe'], headers['List-Unsubscribe-Post'])
+        .method,
     };
     if (full) {
       const { text, truncated } = extractText(message.payload, BODY_MAX_CHARS);
@@ -206,18 +259,37 @@ export class Mail {
     return out;
   }
 
-  async senderStats(mailbox: string, window: string, query: string, top: number, maxMessages: number) {
+  async senderStats(
+    mailbox: string,
+    window: string,
+    query: string,
+    top: number,
+    maxMessages: number,
+  ) {
     const gmail = this.gmail(mailbox);
     const q = withWindow(query, window);
     const { ids, truncated } = await gmail.listIds(q, maxMessages);
     const { messages, skipped } = await this.fetchHeaders(gmail, ids, UNSUBSCRIBE_HEADERS);
     // The unsubscribe method comes from the sender's newest message that carries one, the same
     // message plan_unsubscribe would act on; a sender's newest mail may be a receipt without it.
-    const bySender = new Map<string, { address: string; name: string; count: number; latest: number; unsubscribe: UnsubscribeMethod; unsubscribeAt: number }>();
+    const bySender = new Map<
+      string,
+      {
+        address: string;
+        name: string;
+        count: number;
+        latest: number;
+        unsubscribe: UnsubscribeMethod;
+        unsubscribeAt: number;
+      }
+    >();
     for (const m of messages) {
       const { address, name } = parseSender(header(m, 'From') ?? '');
       const when = Number(m.internalDate ?? 0);
-      const method = parseUnsubscribe(header(m, 'List-Unsubscribe'), header(m, 'List-Unsubscribe-Post')).method;
+      const method = parseUnsubscribe(
+        header(m, 'List-Unsubscribe'),
+        header(m, 'List-Unsubscribe-Post'),
+      ).method;
       let entry = bySender.get(address);
       if (!entry) {
         entry = { address, name, count: 0, latest: when, unsubscribe: 'none', unsubscribeAt: -1 };
@@ -254,7 +326,13 @@ export class Mail {
     };
   }
 
-  async planModify(mailbox: string, query: string, action: ModifyAction, label: string | undefined, max: number) {
+  async planModify(
+    mailbox: string,
+    query: string,
+    action: ModifyAction,
+    label: string | undefined,
+    max: number,
+  ) {
     const gmail = this.gmail(mailbox);
     let labelId: string | undefined;
     if (action === 'add_label' || action === 'remove_label') {
@@ -264,12 +342,21 @@ export class Mail {
       labelId = await this.labelId(gmail, label);
     }
     const { ids, truncated } = await gmail.listIds(query, max);
-    const base = { mailbox: gmail.mailbox, query, action, label: label ?? null, count: ids.length, truncated };
+    const base = {
+      mailbox: gmail.mailbox,
+      query,
+      action,
+      label: label ?? null,
+      count: ids.length,
+      truncated,
+    };
     if (ids.length === 0) {
       return { ...base, plan_id: null, note: 'Nothing matches; no plan made.' };
     }
     if ((action === 'trash' || action === 'untrash') && ids.length > LIMITS.trashMax) {
-      throw new Error(`${action} goes message by message, so a plan holds at most ${LIMITS.trashMax}; this query matches ${ids.length}. Narrow it or split it.`);
+      throw new Error(
+        `${action} goes message by message, so a plan holds at most ${LIMITS.trashMax}; this query matches ${ids.length}. Narrow it or split it.`,
+      );
     }
     const sample = ids.slice(0, LIMITS.headerSample);
     const { messages } = await this.fetchHeaders(gmail, sample, SUMMARY_HEADERS);
@@ -280,7 +367,10 @@ export class Mail {
       plan_id: plan.id,
       expires_at: new Date(plan.expiresAt).toISOString(),
       top_senders: topSenders(messages, 10),
-      top_senders_from: ids.length > sample.length ? `the newest ${sample.length} of ${ids.length}` : `all ${ids.length}`,
+      top_senders_from:
+        ids.length > sample.length
+          ? `the newest ${sample.length} of ${ids.length}`
+          : `all ${ids.length}`,
       sample_subjects: messages.slice(0, 10).map((m) => header(m, 'Subject') ?? ''),
     };
   }
@@ -288,15 +378,25 @@ export class Mail {
   async planUnsubscribe(mailbox: string, senders: string[]) {
     const gmail = this.gmail(mailbox);
     const addresses = [...new Set(senders.map((s) => s.trim().toLowerCase()))];
-    const targets = await Promise.all(addresses.map((address) => this.unsubscribeTarget(gmail, address)));
+    const targets = await Promise.all(
+      addresses.map((address) => this.unsubscribeTarget(gmail, address)),
+    );
     const actionable = targets.filter((t) => t.method === 'one-click' || t.method === 'mailto');
     const summary = {
       mailbox: gmail.mailbox,
-      senders: targets.map((t) => ({ address: t.address, method: t.method, target: describeTarget(t) })),
+      senders: targets.map((t) => ({
+        address: t.address,
+        method: t.method,
+        target: describeTarget(t),
+      })),
       by_method: countBy(targets.map((t) => t.method)),
     };
     if (actionable.length === 0) {
-      return { ...summary, plan_id: null, note: 'No sender has a one-click or mailto unsubscribe; no plan made.' };
+      return {
+        ...summary,
+        plan_id: null,
+        note: 'No sender has a one-click or mailto unsubscribe; no plan made.',
+      };
     }
     const plan = this.plans.create('unsubscribe', gmail.mailbox, targets);
     return {
@@ -310,7 +410,12 @@ export class Mail {
   // Criteria are one sender or domain (`from`) or any Gmail search (`query`); actions combine as in
   // Gmail's own filter dialog. The count of existing mail the filter would have matched is exact,
   // by listing, up to a cap.
-  async planCreateFilter(mailbox: string, criteria: FilterCriteria, actions: FilterAction[], options: FilterOptions) {
+  async planCreateFilter(
+    mailbox: string,
+    criteria: FilterCriteria,
+    actions: FilterAction[],
+    options: FilterOptions,
+  ) {
     const gmail = this.gmail(mailbox);
     if ((criteria.from === undefined) === (criteria.query === undefined)) {
       throw new Error('A filter needs exactly one of from or query');
@@ -368,7 +473,8 @@ export class Mail {
       criteria: criteria.from !== undefined ? { from: criteria.from } : { query: criteria.query },
       action: filterAction,
     };
-    const matchQuery = criteria.from !== undefined ? `from:${criteria.from}` : criteria.query ?? '';
+    const matchQuery =
+      criteria.from !== undefined ? `from:${criteria.from}` : (criteria.query ?? '');
     const { ids, truncated } = await gmail.listIds(matchQuery, LIMITS.filterCountCap);
     const payload: FilterPayload = { filter };
     const plan = this.plans.create('create_filter', gmail.mailbox, payload);
@@ -386,30 +492,54 @@ export class Mail {
     };
   }
 
-  private async verifiedForwardingAddress(gmail: Gmail, address: string | undefined): Promise<string> {
+  private async verifiedForwardingAddress(
+    gmail: Gmail,
+    address: string | undefined,
+  ): Promise<string> {
     if (!address) {
       throw new Error('forward needs forward_to: a confirmed forwarding address');
     }
-    const found = (await settings.forwardingAddresses(gmail)).find((a) => a.forwardingEmail.toLowerCase() === address.toLowerCase());
+    const found = (await settings.forwardingAddresses(gmail)).find(
+      (a) => a.forwardingEmail.toLowerCase() === address.toLowerCase(),
+    );
     if (!found) {
-      throw new Error(`${address} is not a forwarding address of ${gmail.mailbox}; plan_add_forwarding_address adds it`);
+      throw new Error(
+        `${address} is not a forwarding address of ${gmail.mailbox}; plan_add_forwarding_address adds it`,
+      );
     }
     if (found.verificationStatus !== 'accepted') {
-      throw new Error(`${address} is not confirmed yet (${found.verificationStatus ?? 'unknown'}); its confirmation email has to be clicked first`);
+      throw new Error(
+        `${address} is not confirmed yet (${found.verificationStatus ?? 'unknown'}); its confirmation email has to be clicked first`,
+      );
     }
     return found.forwardingEmail;
   }
 
   // --- settings: reads run directly; every change is a plan holding the exact request ---------
 
-  async updateLabel(mailbox: string, label: string, name: string | undefined, background: string | undefined, text: string | undefined) {
+  async updateLabel(
+    mailbox: string,
+    label: string,
+    name: string | undefined,
+    background: string | undefined,
+    text: string | undefined,
+  ) {
     const gmail = this.gmail(mailbox);
-    return settings.updateLabel(gmail, await this.labelObject(gmail, label), name, background, text);
+    return settings.updateLabel(
+      gmail,
+      await this.labelObject(gmail, label),
+      name,
+      background,
+      text,
+    );
   }
 
   async planDeleteLabel(mailbox: string, label: string) {
     const gmail = this.gmail(mailbox);
-    return this.planSettings(gmail, await settings.planDeleteLabel(gmail, await this.labelObject(gmail, label)));
+    return this.planSettings(
+      gmail,
+      await settings.planDeleteLabel(gmail, await this.labelObject(gmail, label)),
+    );
   }
 
   async getVacation(mailbox: string) {
@@ -424,7 +554,11 @@ export class Mail {
     return settings.listSendAs(this.gmail(mailbox));
   }
 
-  async planCreateSendAs(mailbox: string, email: string, fields: settings.SendAsFields & { treatAsAlias: boolean }) {
+  async planCreateSendAs(
+    mailbox: string,
+    email: string,
+    fields: settings.SendAsFields & { treatAsAlias: boolean },
+  ) {
     return this.planSettings(this.gmail(mailbox), settings.planCreateSendAs(email, fields));
   }
 
@@ -446,18 +580,33 @@ export class Mail {
     return this.planSettings(this.gmail(mailbox), settings.planAddForwardingAddress(email));
   }
 
-  async planSetAutoForward(mailbox: string, enabled: boolean, email: string | undefined, disposition: settings.ForwardDisposition | undefined) {
+  async planSetAutoForward(
+    mailbox: string,
+    enabled: boolean,
+    email: string | undefined,
+    disposition: settings.ForwardDisposition | undefined,
+  ) {
     const gmail = this.gmail(mailbox);
-    return this.planSettings(gmail, await settings.planSetAutoForward(gmail, enabled, email, disposition));
+    return this.planSettings(
+      gmail,
+      await settings.planSetAutoForward(gmail, enabled, email, disposition),
+    );
   }
 
   private planSettings(gmail: Gmail, planned: settings.Planned): Record<string, unknown> {
     const plan = this.plans.create('settings', gmail.mailbox, planned.change);
-    return { mailbox: gmail.mailbox, ...planned.summary, plan_id: plan.id, expires_at: new Date(plan.expiresAt).toISOString() };
+    return {
+      mailbox: gmail.mailbox,
+      ...planned.summary,
+      plan_id: plan.id,
+      expires_at: new Date(plan.expiresAt).toISOString(),
+    };
   }
 
   private async labelObject(gmail: Gmail, label: string): Promise<Label> {
-    const found = (await gmail.labels()).find((l) => l.name.toLowerCase() === label.toLowerCase() || l.id === label);
+    const found = (await gmail.labels()).find(
+      (l) => l.name.toLowerCase() === label.toLowerCase() || l.id === label,
+    );
     if (!found) {
       throw new Error(`Label "${label}" does not exist in ${gmail.mailbox}`);
     }
@@ -469,7 +618,10 @@ export class Mail {
   async overview(mailbox: string) {
     const gmail = this.gmail(mailbox);
     const labels = await Promise.all((await gmail.labels()).map((l) => gmail.label(l.id)));
-    const counts = (l: Label | undefined) => ({ total: l?.messagesTotal ?? 0, unread: l?.messagesUnread ?? 0 });
+    const counts = (l: Label | undefined) => ({
+      total: l?.messagesTotal ?? 0,
+      unread: l?.messagesUnread ?? 0,
+    });
     const byId = new Map(labels.map((l) => [l.id, l]));
     const tabs: Record<string, string> = {
       primary: 'CATEGORY_PERSONAL',
@@ -483,7 +635,9 @@ export class Mail {
       all_mail: (await gmail.profile()).messagesTotal,
       inbox: counts(byId.get('INBOX')),
       unread: counts(byId.get('UNREAD')).total,
-      tabs: Object.fromEntries(Object.entries(tabs).map(([tab, id]) => [tab, counts(byId.get(id))])),
+      tabs: Object.fromEntries(
+        Object.entries(tabs).map(([tab, id]) => [tab, counts(byId.get(id))]),
+      ),
       spam: counts(byId.get('SPAM')).total,
       trash: counts(byId.get('TRASH')).total,
       labels: labels
@@ -497,7 +651,9 @@ export class Mail {
   // same name is returned as it is.
   async createLabel(mailbox: string, name: string) {
     const gmail = this.gmail(mailbox);
-    const existing = (await gmail.labels()).find((l) => l.name.toLowerCase() === name.toLowerCase());
+    const existing = (await gmail.labels()).find(
+      (l) => l.name.toLowerCase() === name.toLowerCase(),
+    );
     if (existing) {
       return { mailbox: gmail.mailbox, label: existing.name, id: existing.id, created: false };
     }
@@ -509,10 +665,18 @@ export class Mail {
     const plan = this.plans.take(planId);
     const gmail = this.gmail(plan.mailbox);
     if (plan.kind === 'modify') {
-      return { plan_id: planId, mailbox: gmail.mailbox, ...(await this.runModify(gmail, plan.payload as ModifyPayload)) };
+      return {
+        plan_id: planId,
+        mailbox: gmail.mailbox,
+        ...(await this.runModify(gmail, plan.payload as ModifyPayload)),
+      };
     }
     if (plan.kind === 'unsubscribe') {
-      return { plan_id: planId, mailbox: gmail.mailbox, results: await this.runUnsubscribe(gmail, plan.payload as UnsubscribeTarget[]) };
+      return {
+        plan_id: planId,
+        mailbox: gmail.mailbox,
+        results: await this.runUnsubscribe(gmail, plan.payload as UnsubscribeTarget[]),
+      };
     }
     if (plan.kind === 'create_filter') {
       const created = await gmail.createFilter((plan.payload as FilterPayload).filter);
@@ -520,12 +684,25 @@ export class Mail {
     }
     if (plan.kind === 'send') {
       const payload = plan.payload as SendPayload;
-      const sent = payload.draftId ? await gmail.sendDraft(payload.draftId) : await gmail.send(payload.raw ?? '', payload.threadId);
-      return { plan_id: planId, mailbox: gmail.mailbox, sent: true, message_id: sent.id, thread_id: sent.threadId };
+      const sent = payload.draftId
+        ? await gmail.sendDraft(payload.draftId)
+        : await gmail.send(payload.raw ?? '', payload.threadId);
+      return {
+        plan_id: planId,
+        mailbox: gmail.mailbox,
+        sent: true,
+        message_id: sent.id,
+        thread_id: sent.threadId,
+      };
     }
     if (plan.kind === 'settings') {
       const change = plan.payload as settings.SettingsChange;
-      await gmail.request(change.method, change.path, change.cost, change.body === undefined ? {} : { body: change.body });
+      await gmail.request(
+        change.method,
+        change.path,
+        change.cost,
+        change.body === undefined ? {} : { body: change.body },
+      );
       return { plan_id: planId, mailbox: gmail.mailbox, done: change.done };
     }
     if (plan.kind === 'delete_draft') {
@@ -563,7 +740,12 @@ export class Mail {
     return getThread(this.gmail(mailbox), threadId, full);
   }
 
-  async saveAttachments(mailbox: string, messageId: string, dir: string, only: string[] | undefined) {
+  async saveAttachments(
+    mailbox: string,
+    messageId: string,
+    dir: string,
+    only: string[] | undefined,
+  ) {
     return saveAttachments(this.gmail(mailbox), messageId, dir, only);
   }
 
@@ -576,18 +758,34 @@ export class Mail {
     const gmail = this.gmail(mailbox);
     const composed = await compose(gmail, spec);
     const draft = await gmail.createDraft(composed.raw, composed.threadId);
-    return { mailbox: gmail.mailbox, draft_id: draft.id, message_id: draft.message.id, thread_id: draft.message.threadId, ...composed.summary };
+    return {
+      mailbox: gmail.mailbox,
+      draft_id: draft.id,
+      message_id: draft.message.id,
+      thread_id: draft.message.threadId,
+      ...composed.summary,
+    };
   }
 
   async updateDraft(mailbox: string, draftId: string, spec: ComposeSpec) {
     const gmail = this.gmail(mailbox);
     const composed = await compose(gmail, spec);
     const draft = await gmail.updateDraft(draftId, composed.raw, composed.threadId);
-    return { mailbox: gmail.mailbox, draft_id: draft.id, message_id: draft.message.id, thread_id: draft.message.threadId, ...composed.summary };
+    return {
+      mailbox: gmail.mailbox,
+      draft_id: draft.id,
+      message_id: draft.message.id,
+      thread_id: draft.message.threadId,
+      ...composed.summary,
+    };
   }
 
   // Sending is a plan: the dry run shows exactly who gets what, and only execute_plan sends it.
-  async planSend(mailbox: string, draftId: string | undefined, spec: ComposeSpec | undefined): Promise<Record<string, unknown>> {
+  async planSend(
+    mailbox: string,
+    draftId: string | undefined,
+    spec: ComposeSpec | undefined,
+  ): Promise<Record<string, unknown>> {
     const gmail = this.gmail(mailbox);
     let summary: Record<string, unknown>;
     let payload: SendPayload;
@@ -598,19 +796,28 @@ export class Mail {
     } else if (spec) {
       const composed = await compose(gmail, spec);
       summary = { ...composed.summary };
-      payload = composed.threadId ? { raw: composed.raw, threadId: composed.threadId } : { raw: composed.raw };
+      payload = composed.threadId
+        ? { raw: composed.raw, threadId: composed.threadId }
+        : { raw: composed.raw };
     } else {
       throw new Error('Give draft_id, or the message to send');
     }
     const plan = this.plans.create('send', gmail.mailbox, payload);
-    return { mailbox: gmail.mailbox, ...summary, plan_id: plan.id, expires_at: new Date(plan.expiresAt).toISOString() };
+    return {
+      mailbox: gmail.mailbox,
+      ...summary,
+      plan_id: plan.id,
+      expires_at: new Date(plan.expiresAt).toISOString(),
+    };
   }
 
   async planDeleteDraft(mailbox: string, draftId: string) {
     const gmail = this.gmail(mailbox);
     const draft = await gmail.draft(draftId);
     const { body, ...rest } = draftSummary(draft.message);
-    const plan = this.plans.create('delete_draft', gmail.mailbox, { draftId } satisfies SendPayload);
+    const plan = this.plans.create('delete_draft', gmail.mailbox, {
+      draftId,
+    } satisfies SendPayload);
     return {
       mailbox: gmail.mailbox,
       draft_id: draftId,
@@ -624,7 +831,9 @@ export class Mail {
 
   private async runModify(gmail: Gmail, payload: ModifyPayload) {
     if (payload.action === 'trash' || payload.action === 'untrash') {
-      const results = await Promise.allSettled(payload.ids.map((id) => (payload.action === 'trash' ? gmail.trash(id) : gmail.untrash(id))));
+      const results = await Promise.allSettled(
+        payload.ids.map((id) => (payload.action === 'trash' ? gmail.trash(id) : gmail.untrash(id))),
+      );
       const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
       return {
         action: payload.action,
@@ -634,8 +843,16 @@ export class Mail {
       };
     }
     const fixed = LABEL_CHANGES[payload.action];
-    const add = fixed ? fixed.add : payload.action === 'add_label' && payload.labelId ? [payload.labelId] : [];
-    const remove = fixed ? fixed.remove : payload.action === 'remove_label' && payload.labelId ? [payload.labelId] : [];
+    const add = fixed
+      ? fixed.add
+      : payload.action === 'add_label' && payload.labelId
+        ? [payload.labelId]
+        : [];
+    const remove = fixed
+      ? fixed.remove
+      : payload.action === 'remove_label' && payload.labelId
+        ? [payload.labelId]
+        : [];
     let done = 0;
     for (let i = 0; i < payload.ids.length; i += BATCH_MODIFY_MAX) {
       const chunk = payload.ids.slice(i, i + BATCH_MODIFY_MAX);
@@ -646,28 +863,46 @@ export class Mail {
   }
 
   private async runUnsubscribe(gmail: Gmail, targets: UnsubscribeTarget[]) {
-    return Promise.all(targets.map(async (t) => {
-      try {
-        if (t.method === 'one-click' && t.url) {
-          const res = await this.deps.fetch(t.url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'List-Unsubscribe=One-Click',
-            redirect: 'manual',
-            signal: AbortSignal.timeout(15000),
-          });
-          return { address: t.address, method: t.method, ok: res.status < 400, status: res.status };
+    return Promise.all(
+      targets.map(async (t) => {
+        try {
+          if (t.method === 'one-click' && t.url) {
+            const res = await this.deps.fetch(t.url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: 'List-Unsubscribe=One-Click',
+              redirect: 'manual',
+              signal: AbortSignal.timeout(15000),
+            });
+            return {
+              address: t.address,
+              method: t.method,
+              ok: res.status < 400,
+              status: res.status,
+            };
+          }
+          if (t.method === 'mailto' && t.mailto) {
+            const raw = buildRawMessage({
+              from: gmail.mailbox,
+              to: t.mailto.to,
+              subject: t.mailto.subject,
+              body: t.mailto.body,
+            });
+            const sent = await gmail.send(raw);
+            return { address: t.address, method: t.method, ok: true, sent_message_id: sent.id };
+          }
+          return {
+            address: t.address,
+            method: t.method,
+            ok: false,
+            skipped: true,
+            link: t.url ?? null,
+          };
+        } catch (e) {
+          return { address: t.address, method: t.method, ok: false, error: (e as Error).message };
         }
-        if (t.method === 'mailto' && t.mailto) {
-          const raw = buildRawMessage({ from: gmail.mailbox, to: t.mailto.to, subject: t.mailto.subject, body: t.mailto.body });
-          const sent = await gmail.send(raw);
-          return { address: t.address, method: t.method, ok: true, sent_message_id: sent.id };
-        }
-        return { address: t.address, method: t.method, ok: false, skipped: true, link: t.url ?? null };
-      } catch (e) {
-        return { address: t.address, method: t.method, ok: false, error: (e as Error).message };
-      }
-    }));
+      }),
+    );
   }
 
   // The newest few messages from a sender, newest first; the first carrying List-Unsubscribe decides.
@@ -675,7 +910,10 @@ export class Mail {
     const { ids } = await gmail.listIds(`from:${address}`, 5);
     for (const id of ids) {
       const message = await gmail.metadata(id, UNSUBSCRIBE_HEADERS);
-      const parsed = parseUnsubscribe(header(message, 'List-Unsubscribe'), header(message, 'List-Unsubscribe-Post'));
+      const parsed = parseUnsubscribe(
+        header(message, 'List-Unsubscribe'),
+        header(message, 'List-Unsubscribe-Post'),
+      );
       if (parsed.method !== 'none') {
         return { address, ...parsed };
       }
@@ -685,24 +923,32 @@ export class Mail {
 
   // Fetched concurrently under the pacer. A message deleted between the list and the fetch is
   // counted as skipped; any other failure stops the operation.
-  private async fetchHeaders(gmail: Gmail, ids: string[], headers: string[]): Promise<{ messages: Message[]; skipped: number }> {
-    const results = await Promise.all(ids.map(async (id) => {
-      try {
-        return await gmail.metadata(id, headers);
-      } catch (e) {
-        if ((e as { status?: number }).status === 404) {
-          return undefined;
+  private async fetchHeaders(
+    gmail: Gmail,
+    ids: string[],
+    headers: string[],
+  ): Promise<{ messages: Message[]; skipped: number }> {
+    const results = await Promise.all(
+      ids.map(async (id) => {
+        try {
+          return await gmail.metadata(id, headers);
+        } catch (e) {
+          if ((e as { status?: number }).status === 404) {
+            return undefined;
+          }
+          throw e;
         }
-        throw e;
-      }
-    }));
+      }),
+    );
     const messages = results.filter((m): m is Message => m !== undefined);
     return { messages, skipped: results.length - messages.length };
   }
 
   // A label is named by its name (any case) or its id; one that does not exist stops the dry run.
   private async labelId(gmail: Gmail, label: string): Promise<string> {
-    const found = (await gmail.labels()).find((l) => l.name.toLowerCase() === label.toLowerCase() || l.id === label);
+    const found = (await gmail.labels()).find(
+      (l) => l.name.toLowerCase() === label.toLowerCase() || l.id === label,
+    );
     if (!found) {
       throw new Error(`Label "${label}" does not exist in ${gmail.mailbox}; create_label makes it`);
     }
@@ -714,7 +960,9 @@ export class Mail {
     const connected = this.deps.store.mailboxes();
     if (!connected.includes(key)) {
       const list = connected.length > 0 ? connected.join(', ') : 'none';
-      throw new Error(`Mailbox ${mailbox} is not connected (connected: ${list}). Run connect to add it.`);
+      throw new Error(
+        `Mailbox ${mailbox} is not connected (connected: ${list}). Run connect to add it.`,
+      );
     }
     let gmail = this.gmails.get(key);
     if (!gmail) {
@@ -737,7 +985,9 @@ export class Mail {
 // cannot escape the window.
 export function withWindow(query: string, window: string): string {
   if (!/^\d+[dmy]$/.test(window)) {
-    throw new Error(`window must be a number followed by d, m or y (like 30d, 6m, 1y); got "${window}"`);
+    throw new Error(
+      `window must be a number followed by d, m or y (like 30d, 6m, 1y); got "${window}"`,
+    );
   }
   const trimmed = query.trim();
   return trimmed ? `(${trimmed}) newer_than:${window}` : `newer_than:${window}`;
