@@ -43,12 +43,20 @@ const enc = encodeURIComponent;
 
 // Renaming or recoloring a label changes no message, so it runs directly. Gmail accepts only its
 // own palette of colors and rejects any other with an error that names it.
-export async function updateLabel(gmail: Gmail, label: Label, name: string | undefined, background: string | undefined, text: string | undefined) {
+export async function updateLabel(
+  gmail: Gmail,
+  label: Label,
+  name: string | undefined,
+  background: string | undefined,
+  text: string | undefined,
+) {
   if (name === undefined && background === undefined && text === undefined) {
     throw new Error('Give a new name, or both colors');
   }
   if ((background === undefined) !== (text === undefined)) {
-    throw new Error('Gmail sets a label color as a pair: give background_color and text_color together');
+    throw new Error(
+      'Gmail sets a label color as a pair: give background_color and text_color together',
+    );
   }
   const body: Record<string, unknown> = {};
   if (name !== undefined) {
@@ -72,7 +80,12 @@ export async function planDeleteLabel(gmail: Gmail, label: Label): Promise<Plann
       messages_with_label: counts.messagesTotal ?? 0,
       note: 'The label goes; its messages stay, without it.',
     },
-    change: { method: 'DELETE', path: `/labels/${enc(label.id)}`, cost: 5, done: `deleted label ${label.name}` },
+    change: {
+      method: 'DELETE',
+      path: `/labels/${enc(label.id)}`,
+      cost: 5,
+      done: `deleted label ${label.name}`,
+    },
   };
 }
 
@@ -90,7 +103,9 @@ export function planSetVacation(fields: VacationFields): Planned {
     }
     const t = Date.parse(iso);
     if (Number.isNaN(t)) {
-      throw new Error(`${key} must be a date or date-time, like 2026-11-01 or 2026-11-01T09:00:00-05:00`);
+      throw new Error(
+        `${key} must be a date or date-time, like 2026-11-01 or 2026-11-01T09:00:00-05:00`,
+      );
     }
     return String(t);
   };
@@ -120,9 +135,17 @@ export function planSetVacation(fields: VacationFields): Planned {
       end: fields.end ?? null,
       contacts_only: fields.contactsOnly ?? false,
       domain_only: fields.domainOnly ?? false,
-      note: fields.enabled ? 'While on, Gmail replies automatically to incoming mail with this text.' : 'Turns the responder off.',
+      note: fields.enabled
+        ? 'While on, Gmail replies automatically to incoming mail with this text.'
+        : 'Turns the responder off.',
     },
-    change: { method: 'PUT', path: '/settings/vacation', cost: 5, body, done: fields.enabled ? 'vacation responder on' : 'vacation responder off' },
+    change: {
+      method: 'PUT',
+      path: '/settings/vacation',
+      cost: 5,
+      body,
+      done: fields.enabled ? 'vacation responder on' : 'vacation responder off',
+    },
   };
 }
 
@@ -137,13 +160,16 @@ export async function listSendAs(gmail: Gmail) {
       display_name: s.displayName ?? '',
       primary: s.isPrimary ?? false,
       default: s.isDefault ?? false,
-      verification: s.isPrimary ? 'primary' : s.verificationStatus ?? 'unknown',
+      verification: s.isPrimary ? 'primary' : (s.verificationStatus ?? 'unknown'),
       signature: s.signature ?? '',
     })),
   };
 }
 
-export function planCreateSendAs(email: string, fields: SendAsFields & { treatAsAlias: boolean }): Planned {
+export function planCreateSendAs(
+  email: string,
+  fields: SendAsFields & { treatAsAlias: boolean },
+): Planned {
   const body: Record<string, unknown> = { sendAsEmail: email, treatAsAlias: fields.treatAsAlias };
   if (fields.displayName !== undefined) {
     body['displayName'] = fields.displayName;
@@ -163,12 +189,24 @@ export function planCreateSendAs(email: string, fields: SendAsFields & { treatAs
       treat_as_alias: fields.treatAsAlias,
       note: 'Gmail emails a confirmation to this address; it can be used once someone with access to it clicks that link.',
     },
-    change: { method: 'POST', path: '/settings/sendAs', cost: 100, body, done: `added send-as ${email}` },
+    change: {
+      method: 'POST',
+      path: '/settings/sendAs',
+      cost: 100,
+      body,
+      done: `added send-as ${email}`,
+    },
   };
 }
 
-export async function planUpdateSendAs(gmail: Gmail, email: string, fields: SendAsFields): Promise<Planned> {
-  const current = (await gmail.sendAs()).find((s) => s.sendAsEmail.toLowerCase() === email.toLowerCase());
+export async function planUpdateSendAs(
+  gmail: Gmail,
+  email: string,
+  fields: SendAsFields,
+): Promise<Planned> {
+  const current = (await gmail.sendAs()).find(
+    (s) => s.sendAsEmail.toLowerCase() === email.toLowerCase(),
+  );
   if (!current) {
     throw new Error(`${email} is not a send-as address of ${gmail.mailbox}`);
   }
@@ -191,17 +229,28 @@ export async function planUpdateSendAs(gmail: Gmail, email: string, fields: Send
   return {
     summary: {
       email: current.sendAsEmail,
-      display_name: { from: current.displayName ?? '', to: fields.displayName ?? current.displayName ?? '' },
+      display_name: {
+        from: current.displayName ?? '',
+        to: fields.displayName ?? current.displayName ?? '',
+      },
       signature_changes: fields.signature !== undefined,
       reply_to: fields.replyTo ?? null,
       make_default: fields.makeDefault ?? false,
     },
-    change: { method: 'PATCH', path: `/settings/sendAs/${enc(current.sendAsEmail)}`, cost: 100, body, done: `updated send-as ${current.sendAsEmail}` },
+    change: {
+      method: 'PATCH',
+      path: `/settings/sendAs/${enc(current.sendAsEmail)}`,
+      cost: 100,
+      body,
+      done: `updated send-as ${current.sendAsEmail}`,
+    },
   };
 }
 
 export async function planDeleteSendAs(gmail: Gmail, email: string): Promise<Planned> {
-  const current = (await gmail.sendAs()).find((s) => s.sendAsEmail.toLowerCase() === email.toLowerCase());
+  const current = (await gmail.sendAs()).find(
+    (s) => s.sendAsEmail.toLowerCase() === email.toLowerCase(),
+  );
   if (!current) {
     throw new Error(`${email} is not a send-as address of ${gmail.mailbox}`);
   }
@@ -209,17 +258,29 @@ export async function planDeleteSendAs(gmail: Gmail, email: string): Promise<Pla
     throw new Error(`${email} is the mailbox's own address; it cannot be removed`);
   }
   return {
-    summary: { email: current.sendAsEmail, display_name: current.displayName ?? '', note: 'The mailbox can no longer send as this address until it is added and confirmed again.' },
-    change: { method: 'DELETE', path: `/settings/sendAs/${enc(current.sendAsEmail)}`, cost: 5, done: `removed send-as ${current.sendAsEmail}` },
+    summary: {
+      email: current.sendAsEmail,
+      display_name: current.displayName ?? '',
+      note: 'The mailbox can no longer send as this address until it is added and confirmed again.',
+    },
+    change: {
+      method: 'DELETE',
+      path: `/settings/sendAs/${enc(current.sendAsEmail)}`,
+      cost: 5,
+      done: `removed send-as ${current.sendAsEmail}`,
+    },
   };
 }
 
 // --- forwarding -----------------------------------------------------------------------------
 
-export async function forwardingAddresses(gmail: Gmail): Promise<Array<{ forwardingEmail: string; verificationStatus?: string }>> {
-  const r = await gmail.request<{ forwardingAddresses?: Array<{ forwardingEmail: string; verificationStatus?: string }> } | undefined>(
-    'GET', '/settings/forwardingAddresses', 1,
-  );
+export async function forwardingAddresses(
+  gmail: Gmail,
+): Promise<Array<{ forwardingEmail: string; verificationStatus?: string }>> {
+  const r = await gmail.request<
+    | { forwardingAddresses?: Array<{ forwardingEmail: string; verificationStatus?: string }> }
+    | undefined
+  >('GET', '/settings/forwardingAddresses', 1);
   return r?.forwardingAddresses ?? [];
 }
 
@@ -230,7 +291,10 @@ export async function listForwarding(gmail: Gmail) {
   ]);
   return {
     mailbox: gmail.mailbox,
-    forwarding_addresses: addresses.map((a) => ({ email: a.forwardingEmail, verification: a.verificationStatus ?? 'unknown' })),
+    forwarding_addresses: addresses.map((a) => ({
+      email: a.forwardingEmail,
+      verification: a.verificationStatus ?? 'unknown',
+    })),
     auto_forward: auto,
   };
 }
@@ -241,23 +305,40 @@ export function planAddForwardingAddress(email: string): Planned {
       email,
       note: 'Gmail emails a confirmation to this address; mail can be forwarded there once someone with access to it clicks that link.',
     },
-    change: { method: 'POST', path: '/settings/forwardingAddresses', cost: 100, body: { forwardingEmail: email }, done: `added forwarding address ${email}` },
+    change: {
+      method: 'POST',
+      path: '/settings/forwardingAddresses',
+      cost: 100,
+      body: { forwardingEmail: email },
+      done: `added forwarding address ${email}`,
+    },
   };
 }
 
 // Forwarding every incoming message elsewhere is how a mailbox is quietly copied out, so the plan
 // names the destination in full and says what happens to the original.
-export async function planSetAutoForward(gmail: Gmail, enabled: boolean, email: string | undefined, disposition: ForwardDisposition | undefined): Promise<Planned> {
+export async function planSetAutoForward(
+  gmail: Gmail,
+  enabled: boolean,
+  email: string | undefined,
+  disposition: ForwardDisposition | undefined,
+): Promise<Planned> {
   if (enabled) {
     if (!email) {
       throw new Error('Turning auto-forward on needs the address to forward to');
     }
-    const address = (await forwardingAddresses(gmail)).find((a) => a.forwardingEmail.toLowerCase() === email.toLowerCase());
+    const address = (await forwardingAddresses(gmail)).find(
+      (a) => a.forwardingEmail.toLowerCase() === email.toLowerCase(),
+    );
     if (!address) {
-      throw new Error(`${email} is not a forwarding address of ${gmail.mailbox}; plan_add_forwarding_address adds it`);
+      throw new Error(
+        `${email} is not a forwarding address of ${gmail.mailbox}; plan_add_forwarding_address adds it`,
+      );
     }
     if (address.verificationStatus !== 'accepted') {
-      throw new Error(`${email} is not confirmed yet (${address.verificationStatus ?? 'unknown'}); its confirmation email has to be clicked first`);
+      throw new Error(
+        `${email} is not confirmed yet (${address.verificationStatus ?? 'unknown'}); its confirmation email has to be clicked first`,
+      );
     }
   }
   const body: Record<string, unknown> = { enabled };
@@ -272,8 +353,16 @@ export async function planSetAutoForward(gmail: Gmail, enabled: boolean, email: 
       enabled,
       forward_every_incoming_message_to: enabled ? email : null,
       original_message: disposition ?? 'leaveInInbox',
-      note: enabled ? `Every message arriving in ${gmail.mailbox} will also be sent to ${email}.` : 'Turns auto-forward off.',
+      note: enabled
+        ? `Every message arriving in ${gmail.mailbox} will also be sent to ${email}.`
+        : 'Turns auto-forward off.',
     },
-    change: { method: 'PUT', path: '/settings/autoForwarding', cost: 5, body, done: enabled ? `auto-forward on to ${email}` : 'auto-forward off' },
+    change: {
+      method: 'PUT',
+      path: '/settings/autoForwarding',
+      cost: 5,
+      body,
+      done: enabled ? `auto-forward on to ${email}` : 'auto-forward off',
+    },
   };
 }

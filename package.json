@@ -1,6 +1,6 @@
 {
   "name": "@snackbyte/mail-mcp-server",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Zero-dependency MCP server for Gmail: one OAuth token per mailbox, search, sender counts, unsubscribe, bulk label/archive/trash, filters. Every change is a dry-run plan first.",
   "keywords": [
     "mcp",
@@ -12,7 +12,6 @@
     "mcp-server",
     "unsubscribe"
   ],
-  "license": "MIT",
   "homepage": "https://github.com/jeff-fichtner/mail-mcp-server#readme",
   "bugs": {
     "url": "https://github.com/jeff-fichtner/mail-mcp-server/issues"
@@ -21,34 +20,64 @@
     "type": "git",
     "url": "git+https://github.com/jeff-fichtner/mail-mcp-server.git"
   },
+  "license": "MIT",
+  "author": "Jeff Fichtner",
   "type": "module",
-  "bin": {
-    "mail-mcp-server": "dist/src/bin.js"
+  "engines": {
+    "node": ">=24"
   },
   "exports": {
-    "./config": "./dist/src/config.js",
-    "./gmail": "./dist/src/gmail.js",
-    "./stdio": "./dist/src/stdio.js",
-    "./testing": "./dist/test/fake.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "import": "./dist/config.js"
+    },
+    "./gmail": {
+      "types": "./dist/gmail.d.ts",
+      "import": "./dist/gmail.js"
+    },
+    "./stdio": {
+      "types": "./dist/stdio.d.ts",
+      "import": "./dist/stdio.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "mail-mcp-server": "dist/bin.js"
   },
   "files": [
-    "dist"
+    "dist/",
+    "README.md",
+    "LICENSE"
   ],
-  "engines": {
-    "node": ">=22.18"
-  },
   "scripts": {
-    "typecheck": "tsc -p .",
-    "test": "node --test 'test/*.test.ts'",
-    "check": "npm run typecheck && npm test",
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
-    "prepublishOnly": "npm run check && npm run build"
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{ts,js,mjs,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,mjs,json,md}\"",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test 'tests/*.test.ts'",
+    "check:all": "npm run format:check && npm run lint && npm run typecheck && npm run check:contract && npm test",
+    "prepublishOnly": "npm run build && npm run check:all && node scripts/check-publish-contract.mjs --exists",
+    "check:contract": "node scripts/check-publish-contract.mjs",
+    "smoke:pack": "node scripts/smoke-pack.mjs",
+    "smoke:registry": "node scripts/smoke-registry.mjs"
   },
   "devDependencies": {
-    "@types/node": "24.19.2",
-    "typescript": "7.0.2"
-  },
-  "publishConfig": {
-    "access": "public"
+    "@eslint/js": "^9.39.4",
+    "@types/node": "^25.9.1",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.60.0"
   }
 }

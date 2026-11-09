@@ -38,7 +38,9 @@ export class Pacer {
 
   async run<T>(cost: number, fn: () => Promise<T>): Promise<T> {
     if (cost > this.capacity) {
-      throw new Error(`A call costing ${cost} units can never fit a bucket of ${this.capacity} units`);
+      throw new Error(
+        `A call costing ${cost} units can never fit a bucket of ${this.capacity} units`,
+      );
     }
     const turn = this.queue.then(() => this.acquire(cost));
     this.queue = turn.catch(() => undefined);

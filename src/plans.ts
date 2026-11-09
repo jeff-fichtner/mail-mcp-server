@@ -40,7 +40,9 @@ export class PlanStore {
     this.plans.delete(id);
     const minutes = Math.round(this.ttlMs / 60000);
     if (!plan) {
-      throw new Error(`No plan ${id}. Plans are single-use and expire after ${minutes} minutes; run the dry run again.`);
+      throw new Error(
+        `No plan ${id}. Plans are single-use and expire after ${minutes} minutes; run the dry run again.`,
+      );
     }
     if (plan.expiresAt <= this.now()) {
       throw new Error(`Plan ${id} expired (plans last ${minutes} minutes); run the dry run again.`);

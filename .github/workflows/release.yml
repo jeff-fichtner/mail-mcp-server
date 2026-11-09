@@ -1,0 +1,66 @@
+# Release flow — consumes jeff-fichtner/snackbyte-release-flow-action@v1 (Recipe B,
+# library / package-json strategy) and publishes to npm by TRUSTED PUBLISHING.
+#
+# The ritual: bump `version` in package.json, merge to main. The Action tags v<version>
+# verbatim; the gated step below publishes. A forgotten bump means the tag already
+# exists and the Action fails loudly — that is the guard, not a bug.
+#
+# No npm token exists anywhere. `permissions: id-token: write` lets GitHub mint a
+# short-lived OIDC identity for this run and npm accepts it, provided the package's
+# trusted publisher on npmjs.com names this repository and this workflow file. That can
+# only be configured on a package that already exists on npm, so the FIRST publish of a
+# new package is a bootstrap from a maintainer's machine (see RELEASING.md); every
+# publish after it is this workflow. Provenance is attested automatically.
+#
+# One file serves the template and every package spun out of it: the publish step is
+# gated on package.json's `private`. The template is private → it tags and skips, and
+# says so. A package is not → it publishes. A package accidentally left private skips
+# with a message instead of failing on npm's own refusal.
+name: release
+
+on:
+  push:
+    branches: [main] # the only release channel (see environments.json)
+
+permissions:
+  contents: write # push the derived tag
+  id-token: write # trusted publishing (OIDC) — this is the whole credential
+
+concurrency:
+  group: release-${{ github.ref_name }} # serialize per branch — no two pushes race
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # full history + tags — the derivation refuses a shallow clone
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      # Trusted publishing needs npm >= 11.5; the npm bundled with a Node release may
+      # be older. Cheap, and it tracks npm's own OIDC support.
+      - run: npm install -g npm@latest
+
+      - id: pkg
+        run: echo "private=$(node -p "require('./package.json').private === true")" >> "$GITHUB_OUTPUT"
+
+      - id: release
+        uses: jeff-fichtner/snackbyte-release-flow-action@v1
+        with:
+          version-strategy: package-json # library: tag the package.json version verbatim
+
+      - if: steps.release.outputs.is-env == 'true' && steps.pkg.outputs.private != 'true'
+        run: |
+          npm ci
+          npm publish --access public
+        # no NODE_AUTH_TOKEN: the OIDC identity above is the credential
+
+      - if: steps.release.outputs.is-env == 'true' && steps.pkg.outputs.private == 'true'
+        run: echo "private package — tagged ${{ steps.release.outputs.tag }}, not published"

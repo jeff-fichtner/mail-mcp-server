@@ -52,10 +52,7 @@ export interface AttachmentRef {
 const clean = (value: string) => value.replace(/[\r\n]+/g, ' ').trim();
 
 export function buildMessage(message: ComposedMessage): string {
-  const headers = [
-    `From: ${clean(message.from)}`,
-    `To: ${message.to.map(clean).join(', ')}`,
-  ];
+  const headers = [`From: ${clean(message.from)}`, `To: ${message.to.map(clean).join(', ')}`];
   if (message.cc && message.cc.length > 0) {
     headers.push(`Cc: ${message.cc.map(clean).join(', ')}`);
   }
@@ -82,7 +79,13 @@ export function buildMessage(message: ComposedMessage): string {
     lines = [...headers, ...text];
   } else {
     const boundary = `mail-${randomBytes(12).toString('hex')}`;
-    lines = [...headers, `Content-Type: multipart/mixed; boundary="${boundary}"`, '', `--${boundary}`, ...text];
+    lines = [
+      ...headers,
+      `Content-Type: multipart/mixed; boundary="${boundary}"`,
+      '',
+      `--${boundary}`,
+      ...text,
+    ];
     for (const attachment of message.attachments) {
       lines.push(
         `--${boundary}`,
@@ -123,7 +126,10 @@ function wrap(base64: string): string {
 }
 
 // Prefers text/plain; falls back to text/html with the tags stripped.
-export function extractText(payload: MessagePart | undefined, maxChars: number): { text: string; truncated: boolean } {
+export function extractText(
+  payload: MessagePart | undefined,
+  maxChars: number,
+): { text: string; truncated: boolean } {
   const plain = findPart(payload, 'text/plain');
   const html = plain ? undefined : findPart(payload, 'text/html');
   let text = '';

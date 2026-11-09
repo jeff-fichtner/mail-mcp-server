@@ -30,7 +30,9 @@ export type TokenMap = Map<string, Map<string, string>>;
 export function loadOwner(env: NodeJS.ProcessEnv = process.env): string {
   const owner = env['MAIL_OWNER_ID']?.trim();
   if (!owner) {
-    throw new Error('MAIL_OWNER_ID is required: the id of the person whose mailboxes this server reaches');
+    throw new Error(
+      'MAIL_OWNER_ID is required: the id of the person whose mailboxes this server reaches',
+    );
   }
   return owner;
 }
@@ -47,18 +49,31 @@ export function parseClient(raw: string, source: string): OAuthClient {
   const obj = asRecord(value);
   const clientId = obj?.['client_id'];
   const clientSecret = obj?.['client_secret'];
-  if (typeof clientId !== 'string' || !clientId.trim() || typeof clientSecret !== 'string' || !clientSecret.trim()) {
-    throw new Error(`${source} needs non-empty client_id and client_secret. Expected ${CLIENT_HELP}`);
+  if (
+    typeof clientId !== 'string' ||
+    !clientId.trim() ||
+    typeof clientSecret !== 'string' ||
+    !clientSecret.trim()
+  ) {
+    throw new Error(
+      `${source} needs non-empty client_id and client_secret. Expected ${CLIENT_HELP}`,
+    );
   }
   if (!clientId.trim().endsWith('.apps.googleusercontent.com')) {
-    throw new Error(`${source}: client_id is not a Google OAuth client id (….apps.googleusercontent.com)`);
+    throw new Error(
+      `${source}: client_id is not a Google OAuth client id (….apps.googleusercontent.com)`,
+    );
   }
   return { clientId: clientId.trim(), clientSecret: clientSecret.trim() };
 }
 
 // A flat {"<email>":"<refresh token>"} map is the shape from before owners; it belongs to `owner`,
 // and `legacy` says the stored value should be rewritten in the keyed shape.
-export function parseTokens(raw: string, source: string, owner: string): { tokens: TokenMap; legacy: boolean } {
+export function parseTokens(
+  raw: string,
+  source: string,
+  owner: string,
+): { tokens: TokenMap; legacy: boolean } {
   let value: unknown;
   try {
     value = JSON.parse(raw);
@@ -77,7 +92,9 @@ export function parseTokens(raw: string, source: string, owner: string): { token
   for (const [key, mailboxes] of entries) {
     const map = asRecord(mailboxes);
     if (!map) {
-      throw new Error(`${source}: owner "${key}" is not a map of mailboxes. Expected ${TOKENS_HELP}`);
+      throw new Error(
+        `${source}: owner "${key}" is not a map of mailboxes. Expected ${TOKENS_HELP}`,
+      );
     }
     tokens.set(key, parseMailboxes(map, source));
   }
@@ -99,7 +116,11 @@ function parseMailboxes(obj: Record<string, unknown>, source: string): Map<strin
 }
 
 function serializeTokens(tokens: TokenMap): string {
-  return JSON.stringify(Object.fromEntries([...tokens].map(([owner, mailboxes]) => [owner, Object.fromEntries(mailboxes)])));
+  return JSON.stringify(
+    Object.fromEntries(
+      [...tokens].map(([owner, mailboxes]) => [owner, Object.fromEntries(mailboxes)]),
+    ),
+  );
 }
 
 export function loadClient(env: NodeJS.ProcessEnv = process.env): OAuthClient {
@@ -119,12 +140,15 @@ export function loadClient(env: NodeJS.ProcessEnv = process.env): OAuthClient {
 export function loadTokenStore(owner: string, env: NodeJS.ProcessEnv = process.env): TokenStore {
   const fromEnv = env['MAIL_TOKENS'];
   if (fromEnv !== undefined) {
-    const tokens = parseTokens(fromEnv, 'env MAIL_TOKENS', owner).tokens.get(owner) ?? new Map<string, string>();
+    const tokens =
+      parseTokens(fromEnv, 'env MAIL_TOKENS', owner).tokens.get(owner) ?? new Map<string, string>();
     return {
       mailboxes: () => [...tokens.keys()],
       get: (mailbox) => tokens.get(mailbox.toLowerCase()),
       set: () => {
-        throw new Error('Mailbox tokens come from env MAIL_TOKENS, which this server does not write. Add the token there.');
+        throw new Error(
+          'Mailbox tokens come from env MAIL_TOKENS, which this server does not write. Add the token there.',
+        );
       },
     };
   }
@@ -187,9 +211,13 @@ function keychainRead(service: string): string | null {
 // The value passes through argv, briefly visible to this user's processes, which can read the
 // Keychain entry anyway. execFile avoids a shell, so the JSON needs no quoting.
 function keychainWrite(service: string, value: string): void {
-  execFileSync('security', ['add-generic-password', '-U', '-s', service, '-a', userInfo().username, '-w', value], {
-    stdio: 'ignore',
-  });
+  execFileSync(
+    'security',
+    ['add-generic-password', '-U', '-s', service, '-a', userInfo().username, '-w', value],
+    {
+      stdio: 'ignore',
+    },
+  );
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {

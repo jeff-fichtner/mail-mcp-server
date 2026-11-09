@@ -7,7 +7,7 @@ mailbox.
 
 - **No runtime dependencies.** Node built-ins only, so there is no third-party code to trust with
   your mail.
-- **Node 22.18 or newer.** In a clone, Node runs the TypeScript source directly; the npm package
+- **Node 24 or newer.** In a clone, Node runs the TypeScript source directly; the npm package
   ships it compiled to JavaScript.
 - **Nothing changes without a plan you can see.** Every change to mail is a dry run first (below).
 - **No general send.** It sends only what you approve as a plan.
@@ -36,17 +36,17 @@ Reads, drafts, creating or renaming a label, and deleting a filter run directly.
 
 ## Tools
 
-| Area | Tools |
-|---|---|
-| Mailboxes | `list_mailboxes`, `connect`, `mailbox_overview` |
-| Reading | `search`, `get_message`, `get_thread`, `save_attachments`, `sender_stats` |
-| Writing | `create_draft`, `update_draft`, `list_drafts`; `plan_send`, `plan_delete_draft` |
-| Message state | `plan_modify`: archive, trash, untrash, read/unread, star, important, spam/not spam, add/remove a label |
-| Unsubscribe | `plan_unsubscribe` |
-| Labels | `create_label`, `update_label` (rename, recolor); `plan_delete_label` |
-| Filters | `list_filters`, `delete_filter`; `plan_create_filter` with any of archive, trash, label, never_spam, mark_read, star, important, never_important, categorize, forward |
-| Settings | `get_vacation`, `plan_set_vacation`; `list_send_as`, `plan_create_send_as`, `plan_update_send_as`, `plan_delete_send_as`; `list_forwarding`, `plan_add_forwarding_address`, `plan_set_auto_forward` |
-| Acting | `execute_plan` |
+| Area          | Tools                                                                                                                                                                                               |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mailboxes     | `list_mailboxes`, `connect`, `mailbox_overview`                                                                                                                                                     |
+| Reading       | `search`, `get_message`, `get_thread`, `save_attachments`, `sender_stats`                                                                                                                           |
+| Writing       | `create_draft`, `update_draft`, `list_drafts`; `plan_send`, `plan_delete_draft`                                                                                                                     |
+| Message state | `plan_modify`: archive, trash, untrash, read/unread, star, important, spam/not spam, add/remove a label                                                                                             |
+| Unsubscribe   | `plan_unsubscribe`                                                                                                                                                                                  |
+| Labels        | `create_label`, `update_label` (rename, recolor); `plan_delete_label`                                                                                                                               |
+| Filters       | `list_filters`, `delete_filter`; `plan_create_filter` with any of archive, trash, label, never_spam, mark_read, star, important, never_important, categorize, forward                               |
+| Settings      | `get_vacation`, `plan_set_vacation`; `list_send_as`, `plan_create_send_as`, `plan_update_send_as`, `plan_delete_send_as`; `list_forwarding`, `plan_add_forwarding_address`, `plan_set_auto_forward` |
+| Acting        | `execute_plan`                                                                                                                                                                                      |
 
 The Gmail API can't reach these, so they aren't here: inbox type and tabs, snooze, mute, and
 delegation (which needs a service account).
@@ -81,6 +81,7 @@ You bring your own Google OAuth client. Your tokens never leave your machine.
 
    On other systems, set env `MAIL_OAUTH_CLIENT` to the same JSON. If the client is missing or
    malformed, the server says so at startup on stderr and on every call.
+
 3. **Pick an owner id.** Env `MAIL_OWNER_ID` is required and has no default. It names the person
    whose mailboxes this server reaches. Tokens are stored under it, and the server sees only that
    owner's mailboxes. Any stable string works, for example a UUID.
@@ -126,16 +127,21 @@ mailbox and retries with backoff long enough to outlast a one-minute window, hon
 
 ```sh
 npm install
-npm run check
+npm run check:all
 ```
 
-`check` runs `tsc` (type check only) and `node --test`. The tests run against a fake Google and touch
-neither the network nor the Keychain. `npm run build` compiles to `dist/`, which is what the npm
-package ships; `npm publish` runs the check and the build first.
+`check:all` runs Prettier, ESLint, `tsc` (type check only), a check of the package's publish
+contract, and `node --test`. The tests run against a fake Google and touch neither the network nor
+the Keychain. `npm run build` compiles to `dist/`, which is what the npm package ships;
+`npm run smoke:pack` installs the packed tarball into a clean project and runs it.
+
+Releases are published by GitHub Actions with npm trusted publishing, with no npm token anywhere,
+and carry provenance. [RELEASING.md](RELEASING.md) is the runbook.
 
 ### Using it as a library
 
-The package also exports its building blocks for other servers built on the same token store:
+The package root exports the token store, the Gmail client, `Mail` (the operations behind the
+tools) and the stdio loop. The same building blocks are also available one at a time:
 
 - `@snackbyte/mail-mcp-server/config`: the OAuth client and token store
 - `@snackbyte/mail-mcp-server/gmail`: the paced Gmail client

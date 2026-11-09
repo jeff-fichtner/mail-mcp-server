@@ -1,7 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Gmail, GmailError, isRetryable } from '../src/gmail.ts';
-import { CLIENT, fakeClock, fakeGmail, json, memoryStore, noSleep, type Call } from './fake.ts';
+import {
+  CLIENT,
+  fakeClock,
+  fakeGmail,
+  json,
+  memoryStore,
+  noSleep,
+  type Call,
+} from '../src/testing.ts';
 
 const MAILBOX = 'me@example.com';
 
@@ -75,36 +83,71 @@ test('throttling is retried, honouring Retry-After', async () => {
 });
 
 test('a 403 that is not throttling fails at once with its status and reason', async () => {
-  const { gmail } = gmailWith((call) => (call.url.pathname.endsWith('/labels')
-    ? json(403, { error: { message: 'no', errors: [{ reason: 'insufficientPermissions' }] } })
-    : undefined));
-  await assert.rejects(gmail.labels(), (e: unknown) => e instanceof GmailError && e.status === 403 && e.reason === 'insufficientPermissions');
+  const { gmail } = gmailWith((call) =>
+    call.url.pathname.endsWith('/labels')
+      ? json(403, { error: { message: 'no', errors: [{ reason: 'insufficientPermissions' }] } })
+      : undefined,
+  );
+  await assert.rejects(
+    gmail.labels(),
+    (e: unknown) =>
+      e instanceof GmailError && e.status === 403 && e.reason === 'insufficientPermissions',
+  );
 });
 
 test('persistent 5xx gives up after the retry limit', async () => {
   const sleeps: number[] = [];
-  const { gmail } = gmailWith((call) => (call.url.pathname.endsWith('/labels') ? json(503, { error: { message: 'down' } }) : undefined), sleeps);
+  const { gmail } = gmailWith(
+    (call) =>
+      call.url.pathname.endsWith('/labels') ? json(503, { error: { message: 'down' } }) : undefined,
+    sleeps,
+  );
   await assert.rejects(gmail.labels(), /Gmail 503/);
   assert.equal(sleeps.length, 6);
-  assert.ok(sleeps.reduce((a, b) => a + b, 0) >= 60000, 'the backoff outlasts a one-minute quota window');
+  assert.ok(
+    sleeps.reduce((a, b) => a + b, 0) >= 60000,
+    'the backoff outlasts a one-minute quota window',
+  );
 });
 
 test('an expired refresh token says to run connect', async () => {
-  const { gmail } = gmailWith((call) => (call.url.host === 'oauth2.googleapis.com' ? json(400, { error: 'invalid_grant' }) : undefined));
+  const { gmail } = gmailWith((call) =>
+    call.url.host === 'oauth2.googleapis.com' ? json(400, { error: 'invalid_grant' }) : undefined,
+  );
   await assert.rejects(gmail.labels(), /me@example.com has expired or been revoked.*Run connect/);
 });
 
 test('a mailbox with no token is not connected', async () => {
   const fake = fakeGmail([]);
-  const gmail = new Gmail('other@example.com', { client: CLIENT, store: memoryStore(), fetch: fake.fetch, now: Date.now, sleep: noSleep });
+  const gmail = new Gmail('other@example.com', {
+    client: CLIENT,
+    store: memoryStore(),
+    fetch: fake.fetch,
+    now: Date.now,
+    sleep: noSleep,
+  });
   await assert.rejects(gmail.labels(), /other@example.com is not connected/);
 });
 
 test('listIds pages until max and reports truncation', async () => {
-  const messages = Array.from({ length: 7 }, (_, i) => ({ id: String(i), from: 'a@x.com', date: i }));
+  const messages = Array.from({ length: 7 }, (_, i) => ({
+    id: String(i),
+    from: 'a@x.com',
+    date: i,
+  }));
   const fake = fakeGmail(messages);
-  const gmail = new Gmail(MAILBOX, { client: CLIENT, store: memoryStore({ [MAILBOX]: 'rt' }), fetch: fake.fetch, now: Date.now, sleep: noSleep });
-  assert.deepEqual(await gmail.listIds('', 100), { ids: ['6', '5', '4', '3', '2', '1', '0'], truncated: false, estimate: 7 });
+  const gmail = new Gmail(MAILBOX, {
+    client: CLIENT,
+    store: memoryStore({ [MAILBOX]: 'rt' }),
+    fetch: fake.fetch,
+    now: Date.now,
+    sleep: noSleep,
+  });
+  assert.deepEqual(await gmail.listIds('', 100), {
+    ids: ['6', '5', '4', '3', '2', '1', '0'],
+    truncated: false,
+    estimate: 7,
+  });
   const capped = await gmail.listIds('', 3);
   assert.deepEqual(capped.ids, ['6', '5', '4']);
   assert.equal(capped.truncated, true);

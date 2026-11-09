@@ -1,0 +1,26 @@
+# The check gate on every pull request — the same command as local: `npm run check:all`.
+# A unit of work is a PR from its first commit, so `pull_request` is the one trigger; a
+# push trigger as well would run everything twice. main is release.yml's.
+name: ci
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm # needs package-lock.json committed — do that on the first install (SPIN-UP.md)
+      - run: npm ci
+      - run: npm run check:all

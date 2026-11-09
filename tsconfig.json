@@ -1,17 +1,30 @@
 {
+  // Type-checking only (the `typecheck` script). The build uses tsconfig.build.json.
+  // Source imports carry `.ts` extensions so Node runs a clone's source directly; the build
+  // rewrites them to `.js` (rewriteRelativeImportExtensions).
   "compilerOptions": {
-    "target": "esnext",
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2023"],
     "types": ["node"],
     "strict": true,
-    "noEmit": true,
-    "allowImportingTsExtensions": true,
-    "erasableSyntaxOnly": true,
-    "verbatimModuleSyntax": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
-    "skipLibCheck": true
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true
   },
-  "include": ["src", "test"]
+  "include": ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.d.mts"],
+  "exclude": ["node_modules", "dist"]
 }

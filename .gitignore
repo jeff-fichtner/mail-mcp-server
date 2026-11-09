@@ -1,4 +1,31 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Env / secrets — never commit, never ship (Constitution II)
+.env
+.env.*
+!.env.example
+
+# A project-local .npmrc carries a registry token (the local-registry smoke test writes
+# one); it must never be committed and must never redirect a real publish.
+.npmrc
+
+# npm publish artifacts
+*.tgz
+
+# Logs / OS / editor cruft
 *.log
+npm-debug.log*
 .DS_Store
+
+# Spec Kit local feature state (per-shell, not shared)
+.specify/feature.json
+
+# Claude Code worktrees (apparatus of this checkout, never product)
+.claude/worktrees/
