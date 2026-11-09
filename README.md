@@ -87,14 +87,14 @@ You bring your own Google OAuth client. Your tokens never leave your machine.
 4. **Register the server with Claude Code:**
 
    ```sh
-   claude mcp add --scope user mail -e MAIL_OWNER_ID=YOUR_OWNER_ID -- npx -y mail-mcp-server@0.1.0
+   claude mcp add --scope user mail -e MAIL_OWNER_ID=YOUR_OWNER_ID -- npx -y mail-mcp-server
    ```
 
-   Pinning the version means an update arrives only when you change it. To run from a clone
+   To take updates only when you choose, pin a version: `mail-mcp-server@0.1.1`. To run from a clone
    instead, use `node /path/to/clone/src/bin.ts` as the command.
 
 5. **Connect each mailbox.** Ask Claude to call `connect`, or run
-   `MAIL_OWNER_ID=YOUR_OWNER_ID npx -y mail-mcp-server@0.1.0 connect [address]`. Google's consent
+   `MAIL_OWNER_ID=YOUR_OWNER_ID npx -y mail-mcp-server connect [address]`. Google's consent
    page opens in your browser. The refresh token is stored in the Keychain service `mail_tokens` as JSON
    `{"<owner id>":{"<address>":"<refresh token>"}}`. A flat `{"<address>":"<refresh token>"}` map is
    read as the server's owner's and rewritten in the keyed shape. If env `MAIL_TOKENS` is set (same

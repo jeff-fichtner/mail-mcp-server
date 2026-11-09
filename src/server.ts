@@ -7,7 +7,7 @@ import { Mail } from './mail.ts';
 import { serveStdio } from './stdio.ts';
 import { TOOLS, callTool } from './tools.ts';
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 
 // A missing owner id, or a missing or malformed OAuth client, is reported at startup on stderr and on every call, rather
 // than letting calls go out without one.

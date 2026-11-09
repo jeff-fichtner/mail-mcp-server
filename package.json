@@ -1,8 +1,22 @@
 {
   "name": "mail-mcp-server",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Zero-dependency MCP server for Gmail: one OAuth token per mailbox, search, sender counts, unsubscribe, bulk label/archive/trash, filters. Every change is a dry-run plan first.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "gmail",
+    "email",
+    "claude",
+    "claude-code",
+    "mcp-server",
+    "unsubscribe"
+  ],
   "license": "MIT",
+  "homepage": "https://github.com/jeff-fichtner/mail-mcp-server#readme",
+  "bugs": {
+    "url": "https://github.com/jeff-fichtner/mail-mcp-server/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jeff-fichtner/mail-mcp-server.git"

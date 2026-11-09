@@ -4,6 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const SERVER = fileURLToPath(new URL('../src/server.ts', import.meta.url));
@@ -45,6 +46,7 @@ test('initialize, tools/list and a tool call over stdio', async () => {
   assert.equal(stderr, '');
   assert.equal(byId.get(1)?.['result'].protocolVersion, '2025-06-18');
   assert.equal(byId.get(1)?.['result'].serverInfo.name, 'mail-mcp-server');
+  assert.equal(byId.get(1)?.['result'].serverInfo.version, JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version);
   assert.equal(byId.get(2)?.['result'].tools.length, 31);
   assert.deepEqual(JSON.parse(byId.get(3)?.['result'].content[0].text), { mailboxes: [] });
   assert.equal(byId.get(4)?.['result'].isError, true);
