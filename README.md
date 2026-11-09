@@ -87,16 +87,16 @@ You bring your own Google OAuth client. Your tokens never leave your machine.
 4. **Register the server with Claude Code:**
 
    ```sh
-   claude mcp add --scope user mail -e MAIL_OWNER_ID=YOUR_OWNER_ID -- npx -y mail-mcp-server
+   claude mcp add --scope user mail -e MAIL_OWNER_ID=YOUR_OWNER_ID -- npx -y @snackbyte/mail-mcp-server
    ```
 
-   To take updates only when you choose, pin a version: `mail-mcp-server@0.1.1`. To run from a clone
-   instead, use `node /path/to/clone/src/bin.ts` as the command.
+   To take updates only when you choose, pin a version: `@snackbyte/mail-mcp-server@0.1.1`.
+   To run from a clone instead, use `node /path/to/clone/src/bin.ts` as the command.
 
 5. **Connect each mailbox.** Ask Claude to call `connect`, or run
-   `MAIL_OWNER_ID=YOUR_OWNER_ID npx -y mail-mcp-server connect [address]`. Google's consent
-   page opens in your browser. The refresh token is stored in the Keychain service `mail_tokens` as JSON
-   `{"<owner id>":{"<address>":"<refresh token>"}}`. A flat `{"<address>":"<refresh token>"}` map is
+   `MAIL_OWNER_ID=YOUR_OWNER_ID npx -y @snackbyte/mail-mcp-server connect [address]`. Google's
+   consent page opens in your browser. The refresh token is stored in the Keychain service
+   `mail_tokens` as JSON `{"<owner id>":{"<address>":"<refresh token>"}}`. A flat `{"<address>":"<refresh token>"}` map is
    read as the server's owner's and rewritten in the keyed shape. If env `MAIL_TOKENS` is set (same
    keyed shape), the server reads tokens from it instead and never writes.
 
@@ -136,9 +136,11 @@ package ships; `npm publish` runs the check and the build first.
 ### Using it as a library
 
 The package also exports its building blocks for other servers built on the same token store:
-`mail-mcp-server/config` (OAuth client and token store), `mail-mcp-server/gmail` (the paced Gmail
-client), `mail-mcp-server/stdio` (the MCP stdio loop) and `mail-mcp-server/testing` (a fake Google
-for tests).
+
+- `@snackbyte/mail-mcp-server/config`: the OAuth client and token store
+- `@snackbyte/mail-mcp-server/gmail`: the paced Gmail client
+- `@snackbyte/mail-mcp-server/stdio`: the MCP stdio loop
+- `@snackbyte/mail-mcp-server/testing`: a fake Google for tests
 
 ## License
 

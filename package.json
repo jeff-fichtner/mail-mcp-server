@@ -1,5 +1,5 @@
 {
-  "name": "mail-mcp-server",
+  "name": "@snackbyte/mail-mcp-server",
   "version": "0.1.1",
   "description": "Zero-dependency MCP server for Gmail: one OAuth token per mailbox, search, sender counts, unsubscribe, bulk label/archive/trash, filters. Every change is a dry-run plan first.",
   "keywords": [
@@ -47,5 +47,8 @@
   "devDependencies": {
     "@types/node": "24.19.2",
     "typescript": "7.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
