@@ -47,8 +47,9 @@ the workflow does not use one.
    `0.1.1` for a fix, `1.0.0` when the API is a promise).
 2. Merge to `main`.
 
-The release-flow action tags `v<version>`; the workflow runs `npm ci` and
-`npm publish --access public`, authenticated by the run's OIDC identity, with
+The release job runs `npm run check:all`, and only if it passes does the release-flow
+action tag `v<version>`. A separate publish job then runs `npm ci` and
+`npm publish --access public`, authenticated by that job's OIDC identity, with
 provenance attested automatically — for a **public** repository publishing a public
 package; a private repository publishes fine but gets no attestation. The published
 version's page on npm shows the commit and workflow that built it.
@@ -79,8 +80,11 @@ would stand behind. A pre-release goes to another tag:
 
 ## 6. When a run fails after the tag exists
 
-The tag is pushed before the publish step runs, so a red gate leaves a tag with no
-version behind it on npm. Fix forward: bump the version and merge again. Do not
+The check gate runs before the tag, so a failed check leaves no tag: fix it and merge
+again at the same version. The tag is pushed before the publish job runs, though, so a
+publish that fails (npm refuses it, or `prepublishOnly` fails on something the gate
+did not cover) leaves a tag with no version behind it on npm. Fix forward: bump the
+version and merge again. Do not
 re-point or delete the tag. (The exact re-run semantics of the release-flow action are
 its `CONSUMING.md`'s to define.)
 
