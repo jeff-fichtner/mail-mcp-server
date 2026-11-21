@@ -1,6 +1,10 @@
 # The check gate on every pull request — the same command as local: `npm run check:all`.
 # A unit of work is a PR from its first commit, so `pull_request` is the one trigger; a
 # push trigger as well would run everything twice. main is release.yml's.
+#
+# One job: every job bills at least a whole minute, so every check is a step of the job
+# whose name is the check branch protection requires (release-flow CONSUMING.md, "Keep the
+# Actions bill down").
 name: ci
 
 on:
@@ -11,16 +15,17 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: true # a new push to the PR replaces the run in flight
 
 jobs:
-  check:
+  validate:
+    name: validate (merge gate) # the check branch protection requires
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
-          cache: npm # needs package-lock.json committed — do that on the first install (SPIN-UP.md)
+          cache: npm # needs package-lock.json committed
       - run: npm ci
-      - run: npm run check:all
+      - run: npm run check:all # format, lint, typecheck, publish contract, tests
